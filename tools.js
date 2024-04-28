@@ -3,96 +3,86 @@ const axios = require("axios");
 const yup = require("yup");
 const fs = require("fs");
 const yupToJsonSchema = require("./yupToJsonSchema");
+const customService = require('./data/customService');
+const base_url = 'https://dad4-46-252-103-150.ngrok-free.app';
 
-const getProductSchema = yup.object({
-  product: yup.string().label("product").required("should be a string"),
+
+const customerSupportSchema = yup.object().shape({
+  Room: yup.string().required('Room is required'),
+  Service: yup.string().oneOf(customService, `Title must be either ${joinWithOr(customService)} `).required('Service is required'),
 });
-const getProductsJSONSchema = yupToJsonSchema(getProductSchema);
-const PRODUCT_FINDER = {
-  name: "product_finder",
+
+const customerSupportJSONSchema = yupToJsonSchema(customerSupportSchema);
+
+const CUSTOMER_SUPPORT = {
+  name: "customer_support",
   description:
-    "finds and returns dummy products details from json dummy datas based on the product name passed to it",
+    "talk to user about the service that they required from customer support like service that we provide",
   category: "hackathon",
   subcategory: "communication",
   functionType: "backend",
   dangerous: false,
   associatedCommands: [],
   prerequisites: [],
-  parameters: getProductsJSONSchema,
+  parameters: customerSupportJSONSchema,
   rerun: true,
   rerunWithDifferentParameters: true,
-  runCmd: async ({ product }) => {
+  runCmd: async ({ Room, Service }) => {
+    console.log(Room, Service);
     try {
       const { data } = await axios.get(
-        `https://dummyjson.com/products/search?q=${encodeURIComponent(product)}`
+        `${base_url}/api/v1/personnel/call/${Service}/${Room}`
       );
+    
       return JSON.stringify(data);
     } catch (err) {
+      console.log(err);
       return "Error trying to execute the tool";
     }
   },
 };
 
-const weatherCitySchema = yup.object({
-  city: yup.string().label("city").required("should be a string"),
+const personnelReportSchema = yup.object().shape({
+  Secret: yup.string().required('secret is required'),
+  Personnel: yup.string().required('Personnel is required'),
 });
-const weatherCityJSONSchema = yupToJsonSchema(weatherCitySchema);
-const WEATHER_FROM_LOCATION = {
-  name: "city_weather_data",
-  description: "gets the weather details from a given city name",
+
+const personnelReportJSONSchema = yupToJsonSchema(personnelReportSchema);
+const PERSONNEL_REPORT = {
+  name: "personnel_report",
+  description:
+    "report the personnel task",
   category: "hackathon",
   subcategory: "communication",
   functionType: "backend",
   dangerous: false,
   associatedCommands: [],
   prerequisites: [],
-  parameters: weatherCityJSONSchema,
+  parameters: personnelReportJSONSchema,
   rerun: true,
   rerunWithDifferentParameters: true,
-  runCmd: async ({ city }) => {
-    const ApiKey = process.env.WEATHER_API_KEY;
+  runCmd: async ({ Secret, Personnel }) => {
+    console.log(Secret, Personnel );
     try {
       const { data } = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${ApiKey}`
+        `${base_url}/api/v1/tasks/${Personnel}/${Secret}`
       );
-      return JSON.stringify({
-        weather: data.weather[0].description,
-        main: data.main,
-        coords: data.coord,
-      });
+    
+      return JSON.stringify(data);
     } catch (err) {
+      console.log(err);
       return "Error trying to execute the tool";
     }
   },
 };
 
-const getFilePathSchema = yup.object({
-  filePath: yup.string().label("filePath").required("should be a file path"),
-});
-const getFilePathJSONSchema = yupToJsonSchema(getFilePathSchema);
-const FILE_READER = {
-  name: "file_reader",
-  description:
-    "returns the contents of a file given its filepath in the repository",
-  category: "hackathon",
-  subcategory: "communication",
-  functionType: "backend",
-  dangerous: false,
-  associatedCommands: [],
-  prerequisites: [],
-  parameters: getFilePathJSONSchema,
-  rerun: true,
-  rerunWithDifferentParameters: true,
-  runCmd: async ({ filePath }) => {
-    try {
-      const buffer = fs.readFileSync(filePath);
-      const fileContents = buffer.toString("utf8");
-      return fileContents;
-    } catch (error) {
-      return "An error ocured while looking for the file content";
-    }
-  },
+
+function joinWithOr (array) {
+  if (!Array.isArray(array) || array.length === 0) {
+    return "";
+  }
+  return array.join(" or ");
 };
 
-const tools = [FILE_READER, PRODUCT_FINDER, WEATHER_FROM_LOCATION];
+const tools = [CUSTOMER_SUPPORT, PERSONNEL_REPORT];
 module.exports = tools;
